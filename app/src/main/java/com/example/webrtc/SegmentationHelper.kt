@@ -29,6 +29,8 @@ class SegmentationHelper {
     private var lastMaskHeight = 0
 
     fun processFrame(frame: VideoFrame): VideoFrame {
+        return frame
+        
         val i420 = frame.buffer.toI420() ?: return frame
         val width = i420.width
         val height = i420.height
