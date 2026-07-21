@@ -8,7 +8,6 @@ import com.google.mlkit.vision.segmentation.Segmenter
 import com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions
 import org.webrtc.JavaI420Buffer
 import org.webrtc.VideoFrame
-import java.nio.ByteBuffer
 
 class SegmentationHelper {
 
@@ -22,8 +21,11 @@ class SegmentationHelper {
     @Volatile
     private var isProcessing = false
     
-    private var lastMask: ByteBuffer? = null
+    @Volatile
+    private var lastMask: FloatArray? = null
+    @Volatile
     private var lastMaskWidth = 0
+    @Volatile
     private var lastMaskHeight = 0
 
     fun processFrame(frame: VideoFrame): VideoFrame {
@@ -50,13 +52,14 @@ class SegmentationHelper {
                     .addOnSuccessListener { mask ->
                         try {
                             val maskBuffer = mask.buffer
-                            maskBuffer.rewind()
-                            val capacity = maskBuffer.capacity()
-                            val copyBuffer = ByteBuffer.allocateDirect(capacity)
-                            copyBuffer.put(maskBuffer)
-                            copyBuffer.rewind()
+                            maskBuffer.order(java.nio.ByteOrder.nativeOrder())
+                            val floatBuffer = maskBuffer.asFloatBuffer()
+                            floatBuffer.rewind()
+                            
+                            val floats = FloatArray(floatBuffer.remaining())
+                            floatBuffer.get(floats)
 
-                            lastMask = copyBuffer
+                            lastMask = floats
                             lastMaskWidth = mask.width
                             lastMaskHeight = mask.height
                         } catch (e: Exception) {
@@ -76,16 +79,20 @@ class SegmentationHelper {
         }
 
         val currentMask = lastMask
-        if (currentMask != null) {
+        val currentMaskWidth = lastMaskWidth
+        val currentMaskHeight = lastMaskHeight
+
+        if (currentMask != null && currentMaskWidth > 0 && currentMaskHeight > 0) {
+            var outI420: JavaI420Buffer? = null
             try {
-                currentMask.rewind()
-                val outI420 = JavaI420Buffer.allocate(width, height)
-                applyMask(i420, outI420, currentMask, lastMaskWidth, lastMaskHeight)
+                outI420 = JavaI420Buffer.allocate(width, height)
+                applyMask(i420, outI420, currentMask, currentMaskWidth, currentMaskHeight)
 
                 i420.release()
                 return VideoFrame(outI420, frame.rotation, frame.timestampNs)
             } catch (e: Exception) {
                 Log.e("SegmentationHelper", "Error applying mask", e)
+                outI420?.release()
                 // Fallback to original frame if mask application fails
             }
         }
@@ -137,7 +144,7 @@ class SegmentationHelper {
     private fun applyMask(
         inI420: VideoFrame.I420Buffer,
         outI420: JavaI420Buffer,
-        mask: ByteBuffer,
+        mask: FloatArray,
         maskWidth: Int,
         maskHeight: Int
     ) {
@@ -157,8 +164,6 @@ class SegmentationHelper {
         val bgU = 128.toByte()
         val bgV = 128.toByte()
         
-        val floatMask = mask.asFloatBuffer()
-        
         for (y in 0 until height) {
             val maskY = (y * maskHeight) / height
             
@@ -168,7 +173,7 @@ class SegmentationHelper {
             
             for (x in 0 until width) {
                 val maskX = (x * maskWidth) / width
-                val confidence = floatMask.get(maskY * maskWidth + maskX)
+                val confidence = mask[maskY * maskWidth + maskX]
                 
                 val yIdx = y * inI420.strideY + x
                 val outYIdx = y * outI420.strideY + x
@@ -198,7 +203,7 @@ class SegmentationHelper {
             
             for (x in 0 until halfWidth) {
                 val maskX = (x * 2 * maskWidth) / width
-                val confidence = floatMask.get(maskY * maskWidth + maskX)
+                val confidence = mask[maskY * maskWidth + maskX]
                 
                 val inUIdx = y * inI420.strideU + x
                 val inVIdx = y * inI420.strideV + x
@@ -206,8 +211,6 @@ class SegmentationHelper {
                 val outVIdx = y * outI420.strideV + x
                 
                 if (confidence > 0.3f) {
-                    // Cyan/Blue tint: force high U (blue) and low V (red)
-                    // Keep some original color but tint heavily
                     val origU = inU.get(inUIdx).toInt() and 0xFF
                     val origV = inV.get(inVIdx).toInt() and 0xFF
                     

@@ -1,6 +1,9 @@
-sed -i '/val segmentedFrame = segmentationHelper.processFrame(frame)/,/originalObserver.onFrameCaptured(segmentedFrame)/c\
+sed -i '/val segmentedFrame = segmentationHelper.processFrame(frame)/,/segmentedFrame.release()/c\
                 val segmentedFrame = segmentationHelper.processFrame(frame)\
-                originalObserver.onFrameCaptured(segmentedFrame)\
-                if (segmentedFrame != frame) {\
-                    segmentedFrame.release()\
+                try {\
+                    originalObserver.onFrameCaptured(segmentedFrame)\
+                } finally {\
+                    if (segmentedFrame != frame) {\
+                        segmentedFrame.release()\
+                    }\
                 }' app/src/main/java/com/example/webrtc/WebRTCManager.kt

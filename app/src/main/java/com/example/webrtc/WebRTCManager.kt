@@ -70,9 +70,12 @@ class WebRTCManager(
             }
             override fun onFrameCaptured(frame: VideoFrame) {
                 val segmentedFrame = segmentationHelper.processFrame(frame)
-                originalObserver.onFrameCaptured(segmentedFrame)
-                if (segmentedFrame != frame) {
-                    segmentedFrame.release()
+                try {
+                    originalObserver.onFrameCaptured(segmentedFrame)
+                } finally {
+                    if (segmentedFrame != frame) {
+                        segmentedFrame.release()
+                    }
                 }
             }
         }
