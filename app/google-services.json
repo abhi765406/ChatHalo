@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "592994181533",
+    "firebase_url": "https://hologramcall-default-rtdb.firebaseio.com",
+    "project_id": "hologramcall",
+    "storage_bucket": "hologramcall.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:592994181533:android:dc923aeb6a5eed3b974f74",
+        "android_client_info": {
+          "package_name": "com.aistudio.hologramcall.zbcxqw"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqyqSmrzzK4JdEBFepsQBcod8G-ptg9Oc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

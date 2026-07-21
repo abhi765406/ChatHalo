@@ -1,0 +1,11 @@
+{
+  "name": "Hologram Call",
+  "description": "A peer-to-peer video calling app with AR features.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
