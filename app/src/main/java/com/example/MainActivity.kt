@@ -92,6 +92,8 @@ fun CallScreen() {
     var isMuted by remember { mutableStateOf(false) }
     var connectionState by remember { mutableStateOf("Disconnected") }
     var showEndCallDialog by remember { mutableStateOf(false) }
+    var showCrashLogDialog by remember { mutableStateOf(false) }
+    var crashLogContent by remember { mutableStateOf("") }
     
     val context = LocalContext.current
     
@@ -193,7 +195,37 @@ fun CallScreen() {
                         Text("Join")
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(
+                    onClick = {
+                        val file = java.io.File(context.getExternalFilesDir(null), "crash_log.txt")
+                        crashLogContent = if (file.exists()) {
+                            file.readText()
+                        } else {
+                            "No crash log found."
+                        }
+                        showCrashLogDialog = true
+                    }
+                ) {
+                    Text("View Last Crash Log")
+                }
             }
+        }
+        if (showCrashLogDialog) {
+            AlertDialog(
+                onDismissRequest = { showCrashLogDialog = false },
+                title = { Text("Crash Log") },
+                text = {
+                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                        item {
+                            Text(crashLogContent, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showCrashLogDialog = false }) { Text("Close") }
+                }
+            )
         }
     } else {
         if (showEndCallDialog) {
